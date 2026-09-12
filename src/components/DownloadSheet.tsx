@@ -1,0 +1,21 @@
+import { prepareQualityStreams } from '../services/playbackQualityService';
+import React, { useEffect, useState } from 'react';
+import { NativeModules, Platform } from 'react-native';
+import { ActionSheet, ActionSheetOption } from './common/ActionSheet';
+import { useDownloadSheetStore } from '../store/useDownloadSheetStore';
+import { useToastStore } from '../store/useToastStore';
+import { YouTubeService } from '../services/youtubeService';
+import { DownloadService } from '../services/downloadService';
+import { DownloadOption, getDownloadOptions } from '../utils/downloadOptions';
+export const DownloadSheet = () => {
+  const { video, close } = useDownloadSheetStore();
+  const [options, setOptions] = useState<DownloadOption[]>([]), [loading, setLoading] = useState(false), [error, setError] = useState('');
+  const [revision, setRevision] = useState(0);
+  useEffect(() => { let active = true; setOptions([]); setError(''); if (!video) return; setLoading(true);
+    YouTubeService.getPlaybackStreams(video.id).then(async bundle => { if (bundle.hlsManifestUrl) bundle.qualityStreams = await prepareQualityStreams(bundle); if (active) setOptions(getDownloadOptions(bundle).filter(x => !x.audio || Platform.OS === 'android' && !!NativeModules.TubenNativeModule?.mergeMediaTracks)); }).catch(() => { if (active) setError('İndirme seçenekleri yüklenemedi.'); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [video?.id, revision]);
+  const actions: ActionSheetOption[] = options.map(option => ({ id: option.quality, title: `${option.quality} video`, subtitle: option.kind === 'hls' ? 'Video ve ses · Çevrimdışı HLS' : option.audio ? 'Video + ses · Birleştirilmiş MP4' : 'Video ve ses · MP4', icon: 'download-outline', onPress: () => { if (video) { DownloadService.enqueue(video, option); useToastStore.getState().showToast('İndirme kuyruğuna eklendi. Kitaplık’tan takip edebilirsin.', 'success'); } } }));
+  if (!loading && !options.length) actions.push({ id: 'retry', title: 'Tekrar dene', icon: 'refresh-outline', onPress: () => { if (video) { const original = video; setRevision(x => x + 1); setTimeout(() => useDownloadSheetStore.getState().open(original), 300); } } });
+  return <ActionSheet visible={!!video} title={loading ? 'Kaliteler yükleniyor…' : 'İndirme kalitesi'} subtitle={error || (!loading && !options.length ? 'Bu video için indirilebilir MP4 kaynağı bulunmuyor.' : video?.title)} options={actions} onClose={close} />;
+};

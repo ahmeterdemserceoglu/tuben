@@ -1,0 +1,64 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Default deny all unknown collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // User document rules
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+                    && request.resource.data.uid == userId
+                    && request.resource.data.keys().hasAll(['uid', 'createdAt', 'updatedAt'])
+                    && request.resource.data.displayName is string;
+      allow update: if isOwner(userId)
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid', 'createdAt']);
+      allow delete: if false; // User profiles cannot be permanently purged from client
+
+      // Subcollection: Favorites (Beğenilen Videolar)
+      match /favorites/{videoId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+                              && request.resource.data.videoId is string
+                              && request.resource.data.title is string;
+      }
+
+      // Subcollection: History (İzleme Geçmişi)
+      match /history/{videoId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+                              && request.resource.data.videoId is string
+                              && request.resource.data.title is string;
+      }
+
+      // Subcollection: Subscriptions (Abonelikler)
+      match /subscriptions/{channelId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+                              && request.resource.data.channelId is string
+                              && request.resource.data.channelTitle is string;
+      }
+
+      // Subcollection: Playlists (Özel Listeler)
+      match /playlists/{playlistId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+                              && request.resource.data.title is string
+                              && request.resource.data.title.size() <= 100;
+      }
+    }
+  }
+}
