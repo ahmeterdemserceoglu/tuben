@@ -2,20 +2,26 @@
   "expo": {
     "name": "Tuben",
     "slug": "tuben",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0B0B0B"
+      "backgroundColor": "#FAFAF9"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "package": "com.tuben.app",
+      "versionCode": 2,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundColor": "#FAFAF9",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
       "permissions": [
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_MEDIA_PLAYBACK",

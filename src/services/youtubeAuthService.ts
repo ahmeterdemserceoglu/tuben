@@ -3,8 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const STORAGE_KEY = '@tuben_youtube_auth';
 
 // Standard YouTube TV client identity (tested & verified for device flow)
-const DEFAULT_CLIENT_ID = '861556708454-d6dlm3lh05idd8npek18k6be8ba3oc68.apps.googleusercontent.com';
-const DEFAULT_CLIENT_SECRET = 'SboVhoG9s0rNafixCSGGKXAT';
+const DEFAULT_CLIENT_ID = process.env.EXPO_PUBLIC_YOUTUBE_CLIENT_ID || '861556708454-d6dlm3lh05idd8npek18k6be8ba3oc68.apps.googleusercontent.com';
+const DEFAULT_CLIENT_SECRET = process.env.EXPO_PUBLIC_YOUTUBE_CLIENT_SECRET || '';
 
 export interface YouTubeTokens {
   accessToken: string;
