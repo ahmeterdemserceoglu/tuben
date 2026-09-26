@@ -8,11 +8,15 @@ Bu dosya Play Console formlarını doldururken kaynak koddaki mevcut davranış�
 - Türkçe mağaza açıklamaları, uygulama simgesi, özellik görseli ve iki telefon ekran görüntüsü yüklendi.
 - Gizlilik politikası kaydedildi ve `https://ahmeterdemserceoglu.github.io/tuben/gizlilik/` adresinde yayınlandı.
 - Reklam, resmi kurum, finans ve sağlık beyanları tamamlandı.
-- Kategori `Video Oynatıcılar ve Düzenleyiciler` olarak seçildi; herkese açık destek e-postası henüz kaydedilmedi.
-- Uygulama erişimi görevi, inceleme ekibine bütün özellikleri açan yeniden kullanılabilir erişim bilgisi istediği için tamamlanmadı. Misafir oturumu temel işlevleri açıyor; isteğe bağlı YouTube senkronizasyonu ve yorum gönderme için üçüncü taraf Google hesabı gerekiyor.
-- Hedef kitle anketi, uygulama erişimi görevi tamamlanana kadar Play Console tarafından kilitli tutuluyor.
-- İçerik derecelendirme ve veri güvenliği formları henüz gönderilmedi.
-- Hiçbir sürüm incelemeye veya üretime gönderilmedi.
+- Uygulama erişimi, misafir oturumuyla temel özelliklerin incelenebileceği açıklanarak tamamlandı.
+- Hedef kitle `13–15`, `16–17` ve `18+` olarak kaydedildi.
+- IARC içerik derecelendirme anketi tamamlandı; üçüncü taraf video ve yorum içeriği için ihtiyatlı yanıtlar verildi.
+- Veri Güvenliği anketi tamamlandı ve Yayınlama özetine kaydedildi.
+- Kategori `Video Oynatıcılar ve Düzenleyiciler` olarak seçildi.
+- Herkese açık destek e-postası `ahmeterdemserceoglo@gmail.com`, web sitesi `https://ahmeterdemserceoglu.github.io/tuben/` olarak kaydedildi.
+- Hesap/veri silme URL'si `https://ahmeterdemserceoglu.github.io/tuben/hesap-silme/` olarak kaydedildi.
+- Mağaza kurulumu için gereken içerik ve giriş taslakları tamamlandı. Değişiklikler Yayınlama özetinde bekliyor; incelemeye gönderilmedi.
+- Üretim erişimi için henüz kapalı test sürümü, 12 test kullanıcısı ve kesintisiz 14 günlük test şartı tamamlanmadı.
 
 ## Uygulama erişimi
 
@@ -45,10 +49,21 @@ Bu dosya Play Console formlarını doldururken kaynak koddaki mevcut davranış�
 
 - Kişisel bilgiler: e-posta adresi, görünen ad, Firebase kullanıcı kimliği.
 - Uygulama etkinliği: izleme geçmişi ve oynatma konumu, beğeniler, abonelikler, oynatma listeleri.
+- Arama sorguları, sonuç sağlamak için üçüncü taraf içerik hizmetlerine gönderilebilir.
+- Kullanıcının isteğe bağlı olarak gönderdiği yorumlar YouTube'a aktarılır.
 - Hesap yönetimi: oturum ve hesap bilgileri.
 - Kullanıcının seçimine bağlı YouTube OAuth belirteçleri cihazda yerel olarak saklanır ve Google/YouTube uç noktalarına gönderilir.
 - Çevrimiçi durum bilgisi Firebase Realtime Database'e yazılabilir.
 - SponsorBlock etkinse video kimliği SponsorBlock API'sine gönderilebilir.
+- Firebase ve bağlı hizmetler yaklaşık konumu ağ/IP bilgisi üzerinden ve cihaz ya da diğer kimlikleri işleyebilir.
+
+### Play Console Veri Güvenliği beyanı
+
+- Kişisel bilgiler: ad, e-posta adresi ve kullanıcı kimliği.
+- Konum: yaklaşık konum.
+- Uygulama etkinliği: uygulama işlemleri, uygulama içi arama geçmişi ve kullanıcı tarafından oluşturulan diğer içerikler.
+- Cihaz veya diğer kimlikler.
+- Aktarım sırasında şifreleme ve hem hesap hem de belirli uygulama verileri için silme seçenekleri beyan edildi.
 
 ### Yalnız cihazda saklanan veriler
 
@@ -67,8 +82,8 @@ Bu dosya Play Console formlarını doldururken kaynak koddaki mevcut davranış�
 
 ## Politika öncesi tamamlanması gerekenler
 
-- Uygulama hesap oluşturabildiği için uygulama içinde erişilebilir “Hesabı ve verileri sil” akışı eklenmeli.
-- Hesap silme için herkese açık bir web sayfası/URL yayınlanmalı.
-- Gizlilik politikasına gerçek destek e-postası eklenmeli ve herkese açık URL oluşturulmalı.
 - YouTube içerik indirme, reklam filtreleme ve SponsorBlock davranışının Google Play ve YouTube koşullarına uygunluğu geliştirici tarafından doğrulanmalı.
 - Üretim AAB'si debug anahtarıyla değil, ayrı ve güvenli biçimde yedeklenmiş Tuben upload key ile imzalanmalı.
+- İmzalı AAB kapalı test kanalına yüklenmeli.
+- En az 12 test kullanıcısı kapalı teste katılmalı ve kesintisiz 14 günlük test tamamlanmalı.
+- Test tamamlanıp gerçek cihaz doğrulamaları yapıldıktan sonra Yayınlama özetindeki değişiklikler ayrıca incelemeye gönderilmeli.

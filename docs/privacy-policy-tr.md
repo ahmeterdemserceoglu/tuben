@@ -55,4 +55,4 @@ Bu politika uygulama veya yasal gereksinimler değiştiğinde güncellenebilir. 
 
 ## İletişim
 
-Gizlilik soruları ve veri silme talepleri için Google Play mağaza girişinde gösterilen Laze Studio geliştirici iletişim adresi kullanılabilir.
+Gizlilik soruları ve veri silme talepleri için Laze Studio'ya `ahmeterdemserceoglo@gmail.com` adresinden ulaşılabilir.
