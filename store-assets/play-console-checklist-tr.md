@@ -2,6 +2,18 @@
 
 Bu dosya Play Console formlarını doldururken kaynak koddaki mevcut davranışı özetler. Google'ın formdaki güncel tanımları esas alınmalıdır.
 
+## Play Console durumu — 26 Eylül 2026
+
+- Play Console uygulaması oluşturuldu: `com.tuben.app`.
+- Türkçe mağaza açıklamaları, uygulama simgesi, özellik görseli ve iki telefon ekran görüntüsü yüklendi.
+- Gizlilik politikası kaydedildi ve `https://ahmeterdemserceoglu.github.io/tuben/gizlilik/` adresinde yayınlandı.
+- Reklam, resmi kurum, finans ve sağlık beyanları tamamlandı.
+- Kategori `Video Oynatıcılar ve Düzenleyiciler` olarak seçildi; herkese açık destek e-postası henüz kaydedilmedi.
+- Uygulama erişimi görevi, inceleme ekibine bütün özellikleri açan yeniden kullanılabilir erişim bilgisi istediği için tamamlanmadı. Misafir oturumu temel işlevleri açıyor; isteğe bağlı YouTube senkronizasyonu ve yorum gönderme için üçüncü taraf Google hesabı gerekiyor.
+- Hedef kitle anketi, uygulama erişimi görevi tamamlanana kadar Play Console tarafından kilitli tutuluyor.
+- İçerik derecelendirme ve veri güvenliği formları henüz gönderilmedi.
+- Hiçbir sürüm incelemeye veya üretime gönderilmedi.
+
 ## Uygulama erişimi
 
 - Temel özellikler hesap olmadan kullanılabilir.
