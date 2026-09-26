@@ -43,7 +43,7 @@ Hesapla ilişkili bulut verileri hesap etkin olduğu sürece veya silme talebi t
 
 ## Kullanıcı seçenekleri ve silme
 
-Kullanıcı uygulama içinden oturumu kapatabilir, yerel önbelleği ve belirli kitaplık kayıtlarını temizleyebilir, YouTube bağlantısını kaldırabilir. Hesabın ve ilişkili bulut verilerinin silinmesi için Play Store'da gösterilen geliştirici iletişim adresinden Laze Studio'ya başvurulabilir. Talebin doğrulanması için hesapta kullanılan e-posta adresi istenebilir.
+Kullanıcı uygulama içinden oturumu kapatabilir, yerel önbelleği ve belirli kitaplık kayıtlarını temizleyebilir, YouTube bağlantısını kaldırabilir. Hesap ve ilişkili bulut verileri **Ayarlar > Hesap > Hesabı ve Verileri Sil** yoluyla kalıcı olarak silinebilir. Uygulamaya erişemeyen kullanıcılar [hesap ve veri silme sayfasındaki](../hesap-silme/) adımları kullanabilir.
 
 ## Çocukların gizliliği
 

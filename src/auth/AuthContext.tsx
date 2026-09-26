@@ -8,10 +8,13 @@ import {
   signOut as fbSignOut,
   sendPasswordResetEmail,
   updateProfile,
+  deleteUser,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
+import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, remove } from 'firebase/database';
+import { auth, db, rtdb } from '../config/firebase';
 import { AppUser } from '../types/user';
+import { PresenceService } from '../services/presenceService';
 
 interface AuthContextType {
   user: AppUser | null;
@@ -22,6 +25,7 @@ interface AuthContextType {
   signUp: (email: string, pass: string, name: string) => Promise<void>;
   signInGuest: () => Promise<void>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   error: string | null;
   clearError: () => void;
@@ -162,6 +166,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const deleteAccount = async () => {
+    setError(null);
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      const msg = 'Silinecek etkin bir hesap bulunamadı.';
+      setError(msg);
+      throw new Error(msg);
+    }
+
+    try {
+      const uid = currentUser.uid;
+      const childCollections = ['favorites', 'history', 'subscriptions', 'playlists'];
+
+      PresenceService.stopPresence();
+      await Promise.all(
+        childCollections.map(async (collectionName) => {
+          const snapshot = await getDocs(collection(db, 'users', uid, collectionName));
+          await Promise.all(snapshot.docs.map((entry) => deleteDoc(entry.ref)));
+        }),
+      );
+      await Promise.all([
+        deleteDoc(doc(db, 'users', uid)),
+        remove(ref(rtdb, `/presence/${uid}`)),
+      ]);
+      await deleteUser(currentUser);
+    } catch (err: any) {
+      const msg = err?.code === 'auth/requires-recent-login'
+        ? 'Güvenlik için yeniden giriş yapıp hesap silme işlemini tekrar deneyin.'
+        : translateAuthError(err);
+      setError(msg);
+      throw new Error(msg);
+    }
+  };
+
   const resetPassword = async (email: string) => {
     setError(null);
     try {
@@ -184,6 +222,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         signUp,
         signInGuest,
         signOut,
+        deleteAccount,
         resetPassword,
         error,
         clearError: () => setError(null),

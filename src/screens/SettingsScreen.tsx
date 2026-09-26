@@ -10,6 +10,7 @@ import {
   StatusBar,
   useWindowDimensions,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { clearVideoCacheAsync } from 'expo-video';
@@ -28,7 +29,7 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
   const preferences = useRecommendationStore();
   const { width, height } = useWindowDimensions();
   const landscape = width > height;
-  const { user, signOut } = useAuth();
+  const { user, signOut, deleteAccount } = useAuth();
   const { isAmoled, toggleAmoled, colors } = useThemeStore();
   const { showToast } = useToastStore();
 
@@ -49,6 +50,7 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
 
   const [showClearCacheSheet, setShowClearCacheSheet] = useState(false);
   const [showSignOutSheet, setShowSignOutSheet] = useState(false);
+  const [showDeleteAccountSheet, setShowDeleteAccountSheet] = useState(false);
   const [showQualitySheet, setShowQualitySheet] = useState(false);
   const [showYouTubeSyncModal, setShowYouTubeSyncModal] = useState(false);
   const [isYouTubeSynced, setIsYouTubeSynced] = useState(false);
@@ -76,6 +78,18 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
     navigation.goBack();
   };
 
+  const handleDeleteAccountConfirm = async () => {
+    try {
+      await deleteAccount();
+      await YouTubeAuthService.signOut();
+      await AsyncStorage.clear();
+      showToast('Hesabınız ve ilişkili bulut verileriniz silindi.', 'success');
+      navigation.goBack();
+    } catch (error: any) {
+      showToast(error?.message || 'Hesap silinirken bir hata oluştu.', 'error');
+    }
+  };
+
   const clearCacheOptions: ActionSheetOption[] = [
     {
       id: 'clear',
@@ -95,6 +109,17 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
       icon: 'log-out',
       destructive: true,
       onPress: handleSignOutConfirm,
+    },
+  ];
+
+  const deleteAccountOptions: ActionSheetOption[] = [
+    {
+      id: 'delete-account',
+      title: 'Hesabı Kalıcı Olarak Sil',
+      subtitle: 'Hesap, profil, favoriler, geçmiş, abonelikler ve oynatma listeleri geri alınamaz biçimde silinir.',
+      icon: 'trash',
+      destructive: true,
+      onPress: handleDeleteAccountConfirm,
     },
   ];
 
@@ -364,6 +389,23 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
                   <Text style={styles.rowSubtitle}>{user.email || 'Misafir Kullanıcı'}</Text>
                 </View>
               </TouchableOpacity>
+              <View style={[styles.divider, { backgroundColor: colors.divider }]} />
+              <TouchableOpacity
+                style={styles.clickableRow}
+                activeOpacity={0.7}
+                onPress={() => setShowDeleteAccountSheet(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Hesabı ve verileri sil"
+              >
+                <View style={[styles.iconWrap, { backgroundColor: 'rgba(239, 68, 68, 0.12)' }]}>
+                  <Ionicons name="trash-outline" size={18} color={THEME.colors.error} />
+                </View>
+                <View style={styles.rowInfo}>
+                  <Text style={[styles.rowTitle, { color: THEME.colors.error }]}>Hesabı ve Verileri Sil</Text>
+                  <Text style={styles.rowSubtitle}>Bu işlem kalıcıdır ve geri alınamaz</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={THEME.colors.textTertiary} />
+              </TouchableOpacity>
             </View>
           </>
         )}
@@ -387,6 +429,14 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
         title="Çıkış Yap"
         options={signOutOptions}
         onClose={() => setShowSignOutSheet(false)}
+      />
+
+      <ActionSheet
+        visible={showDeleteAccountSheet}
+        title="Hesabı ve Verileri Sil"
+        subtitle="Devam ettiğinizde Tuben hesabınız ve ilişkili bulut verileriniz kalıcı olarak silinir."
+        options={deleteAccountOptions}
+        onClose={() => setShowDeleteAccountSheet(false)}
       />
 
       <ActionSheet
