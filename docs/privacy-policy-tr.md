@@ -1,3 +1,9 @@
+---
+layout: default
+title: Tuben Gizlilik Politikası
+permalink: /gizlilik/
+---
+
 # Tuben Gizlilik Politikası
 
 Son güncelleme: 26 Eylül 2026
