@@ -20,7 +20,14 @@ export function hlsQualityPlaylists(text: string, manifestUrl: string): { height
     const bandwidth = Number(lines[i].match(/(?:^|[:,])BANDWIDTH=(\d+)/)?.[1]) || 0;
     if ((variants.get(height)?.bandwidth ?? -1) >= bandwidth) continue;
     const version = lines.find((line) => line.startsWith('#EXT-X-VERSION:'));
-    variants.set(height, { height, bandwidth, text: ['#EXTM3U', version, ...shared, lines[i], absolute(uri), ''].filter((line) => line !== undefined).join('\n') });
+    const variant = lines[i];
+    const relevantShared = shared.filter(line => {
+      if (!line.startsWith('#EXT-X-MEDIA:')) return true;
+      const type = line.match(/TYPE=([A-Z-]+)/)?.[1];
+      const group = line.match(/GROUP-ID="([^"]+)"/)?.[1];
+      return Boolean(type && group && variant.includes(`${type}="${group}"`));
+    });
+    variants.set(height, { height, bandwidth, text: ['#EXTM3U', version, ...relevantShared, variant, absolute(uri), ''].filter((line) => line !== undefined).join('\n') });
   }
   return [...variants.values()].sort((a, b) => b.height - a.height);
 }

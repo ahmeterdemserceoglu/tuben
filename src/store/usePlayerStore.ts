@@ -12,8 +12,10 @@ import { NativePlayerBridge } from '../services/nativePlayerBridge';
 import { auth } from '../config/firebase';
 import { useLibraryStore } from './useLibraryStore';
 import { prepareQualityStreams } from '../services/playbackQualityService';
+import { DownloadService } from '../services/downloadService';
 
 let loadGeneration = 0;
+let subtitleGeneration = 0;
 let lastHistorySaveTime = 0;
 
 function persistCurrentWatchPosition() {
@@ -210,6 +212,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   loadAndPlay: async (video, queue = [], index = 0, startPosition) => {
     const requestGeneration = ++loadGeneration;
+    ++subtitleGeneration;
+    const preferredSubtitleLanguage = get().selectedSubtitle?.languageCode;
     const requestedQuality = useSettingsStore.getState().defaultQuality;
     const effectiveQueue = queue.length > 0 ? queue : [video];
     const safeIndex = Math.max(0, Math.min(index, effectiveQueue.length - 1));
@@ -218,6 +222,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const prevVideo = get().currentVideo;
     if (prevVideo && prevVideo.id !== video.id) {
       await persistCurrentWatchPosition();
+      if (requestGeneration !== loadGeneration) return;
       await CheckpointService.onVideoExit();
     }
 
@@ -228,6 +233,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     } else {
       resolvedStart = await CheckpointService.getCheckpoint(video.id);
     }
+
+    if (requestGeneration !== loadGeneration) return;
 
     set({
       currentVideo: video,
@@ -249,6 +256,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       queueIndex: safeIndex,
       sponsorSegments: [],
       currentSponsorSegment: null,
+      selectedSubtitle: null,
+      subtitleCues: [],
+      currentSubtitleText: null,
     });
 
     // Record to watch history immediately
@@ -261,6 +271,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     try {
       let bundle: StreamBundle;
+
+      const downloaded = await DownloadService.findDownloadedVideo(video.id);
+      if (requestGeneration !== loadGeneration) return;
+      if (downloaded) video = { ...video, localUri: downloaded.localVideoUri };
+      else if (video.localUri) throw new Error('İndirilen video eksik veya bozuk. Videoyu tekrar indirin.');
 
       if (video.localUri) {
         bundle = {
@@ -275,7 +290,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
             {
               url: video.localUri,
               quality: 'Offline',
-              format: 'mp4',
+              format: video.localUri.endsWith('.m3u8') ? 'offline-hls' : 'mp4',
               isAdaptive: false,
             },
           ],
@@ -317,7 +332,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
           if (nextVideo && nextVideo.id !== video.id && !nextVideo.localUri) void YouTubeService.getPlaybackStreams(nextVideo.id).catch(() => undefined);
 
           if (updatedBundle.subtitles && updatedBundle.subtitles.length > 0) {
-            const prevLang = get().selectedSubtitle?.languageCode;
+            const prevLang = get().selectedSubtitle?.languageCode || preferredSubtitleLanguage;
             const matching =
               (prevLang ? updatedBundle.subtitles.find((s) => s.languageCode === prevLang) : null) ||
               updatedBundle.subtitles.find((s) => s.languageCode.startsWith('tr')) ||
@@ -390,7 +405,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
       // Auto-load subtitle cues if subtitles are enabled or pre-select default
       if (bundle.subtitles && bundle.subtitles.length > 0) {
-        const prevLang = get().selectedSubtitle?.languageCode;
+        const prevLang = get().selectedSubtitle?.languageCode || preferredSubtitleLanguage;
         const matching =
           (prevLang ? bundle.subtitles.find((s) => s.languageCode === prevLang) : null) ||
           bundle.subtitles.find((s) => s.languageCode.startsWith('tr')) ||
@@ -653,6 +668,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   closePlayer: () => {
     void persistCurrentWatchPosition();
     ++loadGeneration;
+    ++subtitleGeneration;
     void CheckpointService.onVideoExit();
     if (get().isFullscreen) {
       void NativePlayerBridge.setOrientation('portrait');
@@ -741,6 +757,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   toggleSubtitles: () => {
     const { isSubtitlesEnabled, selectedSubtitle, streamBundle } = get();
     if (isSubtitlesEnabled) {
+      ++subtitleGeneration;
       set({ isSubtitlesEnabled: false, currentSubtitleText: null });
     } else {
       if (selectedSubtitle) {
@@ -759,6 +776,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   selectSubtitle: async (subtitle) => {
+    const request = ++subtitleGeneration;
+    const generation = loadGeneration;
     if (!subtitle) {
       set({
         selectedSubtitle: null,
@@ -768,9 +787,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       });
       return;
     }
-    set({ selectedSubtitle: subtitle, isSubtitlesEnabled: true });
+    set({ selectedSubtitle: subtitle, isSubtitlesEnabled: true, subtitleCues: [], currentSubtitleText: null });
     try {
       const cues = await YouTubeService.fetchSubtitleCues(subtitle.url);
+      if (request !== subtitleGeneration || generation !== loadGeneration) return;
       set({ subtitleCues: cues });
       const currentTime = get().currentTime;
       get().updateSubtitleForTime(currentTime);

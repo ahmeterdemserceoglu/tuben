@@ -15,6 +15,7 @@ import { ref, remove } from 'firebase/database';
 import { auth, db, rtdb } from '../config/firebase';
 import { AppUser } from '../types/user';
 import { PresenceService } from '../services/presenceService';
+import { useLibraryStore } from '../store/useLibraryStore';
 
 interface AuthContextType {
   user: AppUser | null;
@@ -40,12 +41,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+    let generation = 0;
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      const request = ++generation;
+      const isCurrent = () => active && request === generation;
       setFirebaseUser(fbUser);
+      setUser(fbUser ? {
+        uid: fbUser.uid, email: fbUser.email,
+        displayName: fbUser.displayName || 'Tuben Kullanıcısı', photoURL: fbUser.photoURL,
+        createdAt: Date.now(), updatedAt: Date.now(),
+      } : null);
+      void useLibraryStore.getState().loadLibrary(fbUser?.uid);
       if (fbUser) {
         try {
           const userDocRef = doc(db, 'users', fbUser.uid);
           const snap = await getDoc(userDocRef);
+          if (!isCurrent()) return;
 
           if (snap.exists()) {
             const data = snap.data();
@@ -69,6 +81,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               schemaVersion: 1,
             };
             await setDoc(userDocRef, newUser, { merge: true });
+            if (!isCurrent()) return;
             setUser({
               uid: fbUser.uid,
               email: fbUser.email,
@@ -79,6 +92,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
           }
         } catch (e) {
+          if (!isCurrent()) return;
           console.warn('[Auth] Error syncing Firestore user profile:', e);
           setUser({
             uid: fbUser.uid,
@@ -92,10 +106,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } else {
         setUser(null);
       }
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => { active = false; ++generation; unsubscribe(); };
   }, []);
 
   const translateAuthError = (err: any): string => {

@@ -20,6 +20,12 @@ export const DownloadsScreen: React.FC<{ navigation: any }> = ({ navigation }) =
         <TouchableOpacity disabled={!complete || !item.localUri} style={{ flexDirection: 'row', gap: 12 }} onPress={() => { if (item.localUri) void usePlayerStore.getState().playVideo({ ...item.video, localUri: item.localUri }); }}><Image source={{ uri: item.video.thumbnailUrl }} style={{ width: 100, height: 58, borderRadius: 8 }} /><View style={{ flex: 1 }}><Text numberOfLines={2} style={{ color: 'white', fontWeight: '600' }}>{item.video.title}</Text><Text style={{ color: '#aaa', marginTop: 6 }}>{item.quality} · {task ? labels[task.status] : 'Tamamlandı'}{task && !complete ? ` · %${Math.floor(task.progress * 100)}` : ''}</Text></View></TouchableOpacity>
         {task && !complete && <View style={{ height: 3, backgroundColor: '#444', marginTop: 12 }}><View style={{ width: `${task.progress * 100}%`, height: 3, backgroundColor: '#e62c43' }} /></View>}
         {task?.error && <Text style={{ color: '#ff9090', marginTop: 8 }}>{task.error}</Text>}
+        {task?.status === 'downloading' && <Text style={{ color: '#aaa', marginTop: 8, fontSize: 12 }}>{[
+          task.phase === 'audio' ? 'Ses indiriliyor' : task.phase === 'hls' ? 'Video parçaları indiriliyor' : 'Video indiriliyor',
+          task.downloadedBytes != null ? `${(task.downloadedBytes / 1048576).toFixed(1)} MB${task.totalBytes ? ` / ${(task.totalBytes / 1048576).toFixed(1)} MB` : ''}` : '',
+          task.bytesPerSecond ? `${(task.bytesPerSecond / 1048576).toFixed(2)} MB/sn` : '',
+          task.remainingSeconds ? `yaklaşık ${Math.ceil(task.remainingSeconds / 60)} dk kaldı` : '',
+        ].filter(Boolean).join(' · ')}</Text>}
         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 24, paddingTop: 12 }}>
           {task && ['downloading', 'queued'].includes(task.status) && <TouchableOpacity onPress={() => { void DownloadService.pause(item.id); }}><Text style={{ color: '#70b4ff' }}>Duraklat</Text></TouchableOpacity>}
           {task && ['paused', 'error'].includes(task.status) && <TouchableOpacity onPress={() => { void DownloadService.resume(item.id); }}><Text style={{ color: '#70b4ff' }}>{task.status === 'error' ? 'Tekrar dene' : 'Devam et'}</Text></TouchableOpacity>}

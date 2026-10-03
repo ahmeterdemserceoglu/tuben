@@ -16,8 +16,7 @@ export async function planOfflineHls(rootUrl: string, read: (url: string) => Pro
     const rewritten: string[] = [];
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i];
-      if (!line || line.startsWith('#EXT-X-I-FRAME') || /^#EXT-X-MEDIA:.*TYPE=SUBTITLES/.test(line)) continue;
-      if (line.startsWith('#EXT-X-STREAM-INF')) line = line.replace(/,SUBTITLES="[^"]*"/, '');
+      if (!line || line.startsWith('#EXT-X-I-FRAME')) continue;
       const uriMatch = line.match(/URI="([^"]+)"/);
       if (uriMatch) {
         const remote = new URL(uriMatch[1], url).href;

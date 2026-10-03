@@ -1,9 +1,11 @@
 # Tuben Windows
 
-Windows 10/11 x64 için taşınabilir masaüstü paketidir. Expo web çıktısını yerel bir Electron penceresinde çalıştırır.
+Windows 10/11 x64 için kurulabilir masaüstü paketidir. Expo web çıktısını yerel bir Electron penceresinde çalıştırır.
+
+Proje kökünde ve `windows-player` klasöründe `npm ci` çalıştırın. Ardından proje kökünde:
 
 ```bash
 npm run build:windows
 ```
 
-Çıktı `windows-player/release/Tuben-1.0.1-Windows-x64.exe` konumuna yazılır.
+Kurulum dosyası `windows-player/release/Tuben-Setup-1.0.1-Windows-x64.exe` konumuna yazılır.

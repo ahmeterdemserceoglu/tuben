@@ -7,6 +7,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { HomeScreen } from '../screens/HomeScreen';
+import { WindowsHomeScreen } from '../../windows-player/WindowsHomeScreen';
 import { TrendingScreen } from '../screens/TrendingScreen';
 import { SubscriptionsScreen } from '../screens/SubscriptionsScreen';
 import { LibraryScreen } from '../screens/LibraryScreen';
@@ -128,7 +129,7 @@ function MainTabNavigator() {
         headerShown: false,
       }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Home" component={Platform.OS === 'web' && process.env.EXPO_PUBLIC_TUBEN_DESKTOP === '1' ? WindowsHomeScreen : HomeScreen} />
       <Tab.Screen name="Trending" component={TrendingScreen} />
       <Tab.Screen name="Subscriptions" component={SubscriptionsScreen} />
       <Tab.Screen name="Library" component={LibraryScreen} />

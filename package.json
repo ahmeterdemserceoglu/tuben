@@ -1,6 +1,6 @@
 {
   "name": "tuben",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "index.ts",
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
@@ -25,15 +25,18 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "cross-env": "^10.0.0",
     "@types/react": "~19.2.2",
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "typecheck": "tsc --noEmit --pretty false",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "export:windows": "expo export --platform web --output-dir dist-windows",
+    "export:windows": "cross-env EXPO_PUBLIC_TUBEN_DESKTOP=1 expo export --platform web --output-dir dist-windows",
+    "dev:windows": "cross-env EXPO_PUBLIC_TUBEN_DESKTOP=1 expo start --web --port 19007",
     "build:windows": "npm run export:windows && npm --prefix windows-player run build:windows"
   },
   "private": true

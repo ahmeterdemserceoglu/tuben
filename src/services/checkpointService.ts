@@ -16,6 +16,9 @@ class PlaybackCheckpointManager {
   private cache: Map<string, VideoCheckpoint> = new Map();
   private isLoaded = false;
   private isDirty = false;
+  private revision = 0;
+  private flushPending: Promise<void> = Promise.resolve();
+  private loadPending: Promise<void> | null = null;
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private currentVideoId: string | null = null;
 
@@ -26,6 +29,12 @@ class PlaybackCheckpointManager {
 
   private async init(): Promise<void> {
     if (this.isLoaded) return;
+    if (this.loadPending) return this.loadPending;
+    this.loadPending = this.load();
+    return this.loadPending;
+  }
+
+  private async load(): Promise<void> {
     try {
       const raw = await AsyncStorage.getItem(CHECKPOINT_STORAGE_KEY);
       if (raw) {
@@ -66,6 +75,7 @@ class PlaybackCheckpointManager {
       if (this.cache.has(videoId)) {
         this.cache.delete(videoId);
         this.isDirty = true;
+        this.revision++;
         this.scheduleFlush();
       }
       return;
@@ -78,6 +88,7 @@ class PlaybackCheckpointManager {
       updatedAt: Date.now(),
     });
     this.isDirty = true;
+    this.revision++;
     this.scheduleFlush();
   }
 
@@ -106,6 +117,7 @@ class PlaybackCheckpointManager {
   clearCheckpoint(videoId: string): void {
     if (this.cache.delete(videoId)) {
       this.isDirty = true;
+      this.revision++;
       void this.flush();
     }
   }
@@ -114,6 +126,12 @@ class PlaybackCheckpointManager {
    * Force flush all dirty in-memory checkpoints to AsyncStorage immediately
    */
   async flush(): Promise<void> {
+    const operation = this.flushPending.then(() => this.flushDirty());
+    this.flushPending = operation.catch(() => undefined);
+    return operation;
+  }
+
+  private async flushDirty(): Promise<void> {
     if (!this.isDirty) return;
     if (this.flushTimer) {
       clearTimeout(this.flushTimer);
@@ -129,13 +147,15 @@ class PlaybackCheckpointManager {
         this.cache = new Map(sorted.slice(0, MAX_CHECKPOINTS));
       }
 
+      const revision = this.revision;
       const record: Record<string, VideoCheckpoint> = {};
       this.cache.forEach((val, key) => {
         record[key] = val;
       });
 
       await AsyncStorage.setItem(CHECKPOINT_STORAGE_KEY, JSON.stringify(record));
-      this.isDirty = false;
+      this.isDirty = revision !== this.revision;
+      if (this.isDirty) this.scheduleFlush();
     } catch (e) {
       console.warn('[CheckpointService] Flush failed:', e);
     }

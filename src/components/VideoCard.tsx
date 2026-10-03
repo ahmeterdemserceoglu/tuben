@@ -27,12 +27,14 @@ interface VideoCardProps {
   video: VideoItem;
   onPress: (video: VideoItem) => void;
   onChannelPress?: (channelName: string, channelId?: string) => void;
+  compact?: boolean;
 }
 
 export const VideoCard: React.FC<VideoCardProps> = ({
   video,
   onPress,
   onChannelPress,
+  compact = false,
 }) => {
   const colors = useThemeStore((s) => s.colors);
   const { user } = useAuth();
@@ -47,13 +49,14 @@ export const VideoCard: React.FC<VideoCardProps> = ({
     setAvatarFailed(false);
     const direct = video?.uploaderAvatarUrl;
     setAvatarUrl(direct?.startsWith('//') ? `https:${direct}` : direct);
-    if (!direct && video?.uploaderId) {
-      void YouTubeService.getChannelAvatar(video.uploaderId).then((url) => {
+    if (!direct && (video?.uploaderId || video?.uploaderUrl)) {
+      const reference = video.uploaderId || video.uploaderUrl!;
+      void YouTubeService.resolveChannelId(reference).then(id => YouTubeService.getChannelAvatar(id)).then((url) => {
         if (active) setAvatarUrl(url);
       }).catch(() => undefined);
     }
     return () => { active = false; };
-  }, [video?.uploaderId, video?.uploaderAvatarUrl]);
+  }, [video?.id, video?.uploaderId, video?.uploaderUrl, video?.uploaderAvatarUrl]);
 
   if (!video || !video.id) return null;
 
@@ -178,9 +181,14 @@ export const VideoCard: React.FC<VideoCardProps> = ({
             style={styles.avatarWrapper}
           >
             {avatarUrl && !avatarFailed ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatar} onError={() => setAvatarFailed(true)} />
+              <Image source={{ uri: avatarUrl }} style={[styles.avatar, compact && { width: 26, height: 26, borderRadius: 13 }]} onError={() => {
+                setAvatarFailed(true);
+                if (video.uploaderId) void YouTubeService.getChannelAvatar(video.uploaderId).then(url => {
+                  if (url && url !== avatarUrl) { setAvatarUrl(url); setAvatarFailed(false); }
+                }).catch(() => undefined);
+              }} />
             ) : (
-              <View style={[styles.avatarPlaceholder, { backgroundColor: colors.surfaceHighlight }]}>
+              <View style={[styles.avatarPlaceholder, { backgroundColor: colors.surfaceHighlight }, compact && { width: 26, height: 26, borderRadius: 13 }]}>
                 <Text style={styles.avatarInitial}>
                   {(video.uploaderName || 'T').charAt(0).toUpperCase()}
                 </Text>
@@ -189,10 +197,10 @@ export const VideoCard: React.FC<VideoCardProps> = ({
           </TouchableOpacity>
 
           <View style={styles.textContainer}>
-            <Text style={styles.title} numberOfLines={2}>
+            <Text style={[styles.title, compact && { fontSize: 12, lineHeight: 17 }]} numberOfLines={2}>
               {video.title}
             </Text>
-            <Text style={styles.viewsText} numberOfLines={2}>{metadata}</Text>
+            <Text style={[styles.viewsText, compact && { fontSize: 10 }]} numberOfLines={2}>{metadata}</Text>
           </View>
 
           <TouchableOpacity

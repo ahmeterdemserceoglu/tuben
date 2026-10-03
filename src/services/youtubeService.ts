@@ -112,6 +112,11 @@ function channelIdFromParams(params?: string): string | undefined {
 function findChannelBrowseId(node: any): string | undefined {
   if (!node || typeof node !== 'object') return undefined;
   if (node.browseEndpoint?.browseId?.startsWith('UC')) return node.browseEndpoint.browseId;
+  if (node.browseId?.startsWith('UC')) return node.browseId;
+  if (typeof node.url === 'string') {
+    const id = node.url.match(/\/channel\/(UC[\w-]{22})/)?.[1];
+    if (id) return id;
+  }
   for (const child of Object.values(node)) {
     const id = findChannelBrowseId(child);
     if (id) return id;
@@ -508,6 +513,7 @@ export function extractVideosFromBrowse(data: any): VideoItem[] {
           title,
           uploaderName: channelName,
           uploaderId: findChannelBrowseId(vm),
+          uploaderAvatarUrl: cleanUrl(vm.metadata?.lockupMetadataViewModel?.image?.decoratedAvatarViewModel?.avatar?.avatarViewModel?.image?.sources?.slice(-1)[0]?.url),
           thumbnailUrl: thumbUrl,
           duration,
           viewCount,
@@ -896,39 +902,11 @@ export class YouTubeService {
           const item = this.parseVideoRenderer(c.compactVideoRenderer);
           if (item) items.push(item);
         } else if (c.lockupViewModel?.contentId) {
-          const vm = c.lockupViewModel;
-          const meta = vm.metadata?.lockupMetadataViewModel;
-          const title = meta?.title?.content || 'Video';
-          const rows = meta?.metadata?.contentMetadataViewModel?.metadataRows || [];
-          const author = rows[0]?.metadataParts?.[0]?.text?.content || 'Kanal';
-          const viewsStr = rows[1]?.metadataParts?.[0]?.text?.content || '0';
-          const viewCount = parseInt(viewsStr.replace(/[^0-9]/g, ''), 10) || 0;
-          items.push({
-            id: vm.contentId,
-            title,
-            uploaderName: author,
-            viewCount,
-            duration: 0,
-            thumbnailUrl: `https://i.ytimg.com/vi/${vm.contentId}/hqdefault.jpg`,
-          });
+          items.push(...extractVideosFromBrowse(c));
         } else if (c.gridShelfViewModel?.contents) {
           for (const inner of c.gridShelfViewModel.contents) {
             if (inner.lockupViewModel?.contentId) {
-              const vm = inner.lockupViewModel;
-              const meta = vm.metadata?.lockupMetadataViewModel;
-              const title = meta?.title?.content || 'Video';
-              const rows = meta?.metadata?.contentMetadataViewModel?.metadataRows || [];
-              const author = rows[0]?.metadataParts?.[0]?.text?.content || 'Kanal';
-              const viewsStr = rows[1]?.metadataParts?.[0]?.text?.content || '0';
-              const viewCount = parseInt(viewsStr.replace(/[^0-9]/g, ''), 10) || 0;
-              items.push({
-                id: vm.contentId,
-                title,
-                uploaderName: author,
-                viewCount,
-                duration: 0,
-                thumbnailUrl: `https://i.ytimg.com/vi/${vm.contentId}/hqdefault.jpg`,
-              });
+              items.push(...extractVideosFromBrowse(inner));
             } else if (inner.shortsLockupViewModel?.entityId) {
               const sm = inner.shortsLockupViewModel;
               const vidId = sm.entityId.replace(/^shorts-shelf-item-/, '');
@@ -1126,7 +1104,7 @@ export class YouTubeService {
         audioStreams.push({
           url: f.url,
           quality: `${Math.round((f.bitrate || 128000) / 1000)} kbps`,
-          format: 'mp4',
+          format: mime.includes('webm') ? 'webm' : 'mp4',
           isAdaptive: true,
           bitrate: f.bitrate,
           audioOnly: true,
@@ -1136,7 +1114,7 @@ export class YouTubeService {
         videoStreams.push({
           url: f.url,
           quality: f.qualityLabel || `${f.height}p`,
-          format: 'mp4',
+          format: mime.includes('webm') ? 'webm' : 'mp4',
           isAdaptive: true,
           bitrate: f.bitrate,
           height: f.height,
@@ -1735,6 +1713,7 @@ export class YouTubeService {
     const duration = this.parseDuration(durationStr);
     const thumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
     const avatar =
+      v.channelThumbnail?.thumbnails?.slice(-1)[0]?.url ||
       v.channelThumbnailSupportedRenderers?.channelThumbnailWithLinkRenderer?.thumbnail?.thumbnails?.[0]?.url ||
       v.ownerBadges?.[0]?.metadataBadgeRenderer?.iconUrl ||
       undefined;
@@ -1746,7 +1725,7 @@ export class YouTubeService {
       uploaderName: author,
       uploaderId,
       uploaderUrl: uploaderId ? `https://www.youtube.com/channel/${uploaderId}` : undefined,
-      uploaderAvatarUrl: avatar,
+      uploaderAvatarUrl: cleanUrl(avatar),
       uploadDate,
       viewCount,
       duration,

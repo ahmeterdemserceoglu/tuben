@@ -11,6 +11,7 @@ import {
   RefreshControl,
   StatusBar,
   Image,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +31,8 @@ import { useAuth } from '../auth/AuthContext';
 import { Haptics } from '../utils/haptics';
 
 export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { width } = useWindowDimensions();
+  const columns = width >= 900 ? 3 : width >= 360 ? 2 : 1;
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,7 +157,7 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const visibleShorts = filterRecommendations(shortsList, preferences, watchedIds);
   const feedItems = useMemo(() => {
     type FeedItem =
-      | { type: 'video'; id: string; video: VideoItem }
+      | { type: 'video'; id: string; videos: VideoItem[] }
       | { type: 'shorts'; id: string; shorts: VideoItem[] }
       | { type: 'continue'; id: string; items: typeof recentHistory };
 
@@ -166,8 +169,8 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     }
 
     const items: FeedItem[] = [];
-    const SHORTS_POSITION = 2; // Show 2 regular recommended videos, then Shorts section
-    const CONTINUE_POSITION = 4; // Show Continue watching shelf further down after video 4
+    const SHORTS_POSITION = columns;
+    const CONTINUE_POSITION = columns * 2;
 
     visibleRegular.forEach((video, index) => {
       if (index === SHORTS_POSITION && visibleShorts.length > 0) {
@@ -176,7 +179,7 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       if (index === CONTINUE_POSITION && recentHistory.length > 0 && selectedCategory === 'all') {
         items.push({ type: 'continue', id: 'continue-shelf', items: recentHistory });
       }
-      items.push({ type: 'video', id: `video-${video.id}-${index}`, video });
+      if (index % columns === 0) items.push({ type: 'video', id: `video-${video.id}-${index}`, videos: visibleRegular.slice(index, index + columns) });
     });
 
     if (visibleRegular.length <= SHORTS_POSITION && visibleShorts.length > 0) {
@@ -184,7 +187,7 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     }
 
     return items;
-  }, [visibleRegular, visibleShorts, recentHistory, selectedCategory]);
+  }, [visibleRegular, visibleShorts, recentHistory, selectedCategory, columns]);
 
   const feedHeader = (
     <View style={{ paddingTop: insets.top + 10 }}>
@@ -338,8 +341,10 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               );
             }
             return (
-              <VideoCard
-                video={item.video}
+              <View style={{ flexDirection: 'row', paddingHorizontal: 4 }}>
+              {item.videos.map(video => <View key={video.id} style={{ width: `${100 / columns}%` }}><VideoCard
+                compact={columns > 1}
+                video={video}
                 onPress={handleVideoPress}
                 onChannelPress={(channelName, channelId) =>
                   navigation.navigate('Channel', {
@@ -347,7 +352,8 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     channelName,
                   })
                 }
-              />
+              /></View>)}
+              </View>
             );
           }}
           refreshControl={

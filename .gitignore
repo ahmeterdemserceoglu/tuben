@@ -74,3 +74,19 @@ Thumbs.db
 *.swp
 *.swo
 *.orig.*
+
+# Local reports, tests and tools excluded from publication
+artifacts/
+__tests__/
+**/src/test/
+**/src/androidTest/
+scripts/test_*
+scripts/verify_*
+*.test.*
+*.spec.*
+Project/
+.claude/
+.agent/
+.agents/
+*.ps1
+*.py

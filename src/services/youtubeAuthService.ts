@@ -30,6 +30,7 @@ class YouTubeAuthServiceClass {
   private loadPromise: Promise<YouTubeTokens | null> | null = null;
   private refreshPromise: Promise<YouTubeTokens | null> | null = null;
   private sessionRevision = 0;
+  private storagePending: Promise<void> = Promise.resolve();
   private listeners: Set<AuthStateListener> = new Set();
   private pollAbortController: AbortController | null = null;
 
@@ -144,6 +145,8 @@ class YouTubeAuthServiceClass {
     this.stopPolling();
     const abort = new AbortController();
     this.pollAbortController = abort;
+    const revision = this.sessionRevision;
+    const isCurrent = () => !abort.signal.aborted && revision === this.sessionRevision;
 
     const intervalMs = Math.max((intervalSec || 5) * 1000, 3000);
     let isFinished = false;
@@ -169,6 +172,7 @@ class YouTubeAuthServiceClass {
         });
 
         const data = await res.json();
+        if (!isCurrent()) return;
 
         if (data.error) {
           if (data.error === 'authorization_pending' || data.error === 'slow_down') {
@@ -206,8 +210,8 @@ class YouTubeAuthServiceClass {
             scope: data.scope,
           };
 
-          await this.saveTokens(tokens);
-          onSuccess(tokens);
+          await this.savePollingTokens(tokens, abort, revision);
+          if (!abort.signal.aborted && this.tokens === tokens) onSuccess(tokens);
         }
       } catch (err: any) {
         if (abort.signal.aborted) return;
@@ -218,7 +222,10 @@ class YouTubeAuthServiceClass {
     // First check after interval
     setTimeout(poll, intervalMs);
 
-    return () => this.stopPolling();
+    return () => {
+      abort.abort();
+      if (this.pollAbortController === abort) this.pollAbortController = null;
+    };
   }
 
   stopPolling() {
@@ -226,6 +233,25 @@ class YouTubeAuthServiceClass {
       this.pollAbortController.abort();
       this.pollAbortController = null;
     }
+  }
+
+  private async savePollingTokens(tokens: YouTubeTokens, abort: AbortController, revision: number): Promise<void> {
+    const isCurrent = () => !abort.signal.aborted && revision === this.sessionRevision;
+    const write = this.storagePending.then(async () => {
+      if (!isCurrent()) return;
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
+      if (!isCurrent()) {
+        // Storage operations are serialized: a newer login cannot be deleted here.
+        await AsyncStorage.removeItem(STORAGE_KEY);
+        return;
+      }
+      this.tokens = tokens;
+      this.isLoaded = true;
+      this.sessionRevision++;
+      this.notify();
+    });
+    this.storagePending = write.catch(() => undefined);
+    await write;
   }
 
   /**
@@ -236,13 +262,16 @@ class YouTubeAuthServiceClass {
     if (sessionChanged) this.sessionRevision++;
     this.tokens = tokens;
     this.isLoaded = true;
+    const revision = this.sessionRevision;
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
+      const write = this.storagePending.then(() => AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tokens)));
+      this.storagePending = write.catch(() => undefined);
+      await write;
     } catch {
       // Ignored
     }
     // Refreshing a token must not trigger every feed to reload (and refresh again).
-    if (sessionChanged) this.notify();
+    if (sessionChanged && revision === this.sessionRevision) this.notify();
   }
 
   /**
@@ -324,7 +353,9 @@ class YouTubeAuthServiceClass {
     this.isLoaded = true;
     this.tokens = null;
     try {
-      await AsyncStorage.removeItem(STORAGE_KEY);
+      const remove = this.storagePending.then(() => AsyncStorage.removeItem(STORAGE_KEY));
+      this.storagePending = remove.catch(() => undefined);
+      await remove;
     } catch {
       // Ignored
     }

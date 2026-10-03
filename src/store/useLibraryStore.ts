@@ -22,6 +22,8 @@ interface LibraryStoreState {
   createPlaylist: (uid: string | null | undefined, title: string) => Promise<CustomPlaylist>;
 }
 
+let libraryGeneration = 0;
+let libraryUid: string | null | undefined;
 export const useLibraryStore = create<LibraryStoreState>((set, get) => ({
   favorites: [],
   history: [],
@@ -30,7 +32,10 @@ export const useLibraryStore = create<LibraryStoreState>((set, get) => ({
   loading: false,
 
   loadLibrary: async (uid) => {
-    set({ loading: true });
+    const generation = ++libraryGeneration;
+    const accountChanged = libraryUid !== (uid || null);
+    libraryUid = uid || null;
+    set({ loading: true, ...(accountChanged ? { favorites: [], history: [], subscriptions: [], playlists: [] } : {}) });
     try {
       const [favs, hist, subs, pls] = await Promise.all([
         LibraryRepository.getFavorites(uid),
@@ -38,13 +43,14 @@ export const useLibraryStore = create<LibraryStoreState>((set, get) => ({
         LibraryRepository.getSubscriptions(uid),
         LibraryRepository.getPlaylists(uid),
       ]);
-      set({ favorites: favs, history: hist, subscriptions: subs, playlists: pls, loading: false });
+      if (generation === libraryGeneration) set({ favorites: favs, history: hist, subscriptions: subs, playlists: pls, loading: false });
     } catch {
-      set({ loading: false });
+      if (generation === libraryGeneration) set({ loading: false });
     }
   },
 
   toggleFavorite: async (uid, video) => {
+    const generation = libraryGeneration;
     const isFav = get().isFavorite(video.id);
     // Optimistic UI update
     if (isFav) {
@@ -70,7 +76,7 @@ export const useLibraryStore = create<LibraryStoreState>((set, get) => ({
       return result;
     } catch {
       // Revert if error
-      get().loadLibrary(uid);
+      if (generation === libraryGeneration) void get().loadLibrary(uid);
       return isFav;
     }
   },
@@ -105,6 +111,7 @@ export const useLibraryStore = create<LibraryStoreState>((set, get) => ({
   },
 
   toggleSubscription: async (uid, channel) => {
+    const generation = libraryGeneration;
     const isSub = get().isSubscribed(channel.id);
     // Optimistic UI update
     if (isSub) {
@@ -127,7 +134,7 @@ export const useLibraryStore = create<LibraryStoreState>((set, get) => ({
       const result = await LibraryRepository.toggleSubscription(uid, channel);
       return result;
     } catch {
-      get().loadLibrary(uid);
+      if (generation === libraryGeneration) void get().loadLibrary(uid);
       return isSub;
     }
   },
@@ -137,8 +144,9 @@ export const useLibraryStore = create<LibraryStoreState>((set, get) => ({
   },
 
   createPlaylist: async (uid, title) => {
+    const generation = libraryGeneration;
     const pl = await LibraryRepository.createPlaylist(uid, title);
-    set({ playlists: [pl, ...get().playlists] });
+    if (generation === libraryGeneration) set({ playlists: [pl, ...get().playlists] });
     return pl;
   },
 }));
